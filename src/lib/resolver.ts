@@ -1,16 +1,20 @@
 // Resolve Blend events emitted from transaction into update logic for the database
 import { LienState } from "../stores.js";
 import { BlendEvent } from "./decode.js";
+import { formatISOString } from "../lib/utils.js";
 
 export type Transaction = {
   block: number,
   hash: `0x${string}`,
-  time: string,
+  time: number,
   events: BlendEvent[]
 }
 
 export function resolveTransaction(transaction: Transaction): LienState {
   const { events, block, hash, time } = transaction;
+
+  const date = new Date(Number(time) * 1000);
+  const dateString = formatISOString(date.toISOString());
 
   const { data, type } = events[0];
   switch (type) {
@@ -21,7 +25,7 @@ export function resolveTransaction(transaction: Transaction): LienState {
         payload: {
           hash,
           block,
-          time,
+          time: dateString,
           event_type: "DELETE",
           lienId: data.lienId,
           collection: data.collection
@@ -35,7 +39,7 @@ export function resolveTransaction(transaction: Transaction): LienState {
         payload: {
           hash,
           block,
-          time,
+          time: dateString,
           event_type: "AUCTION",
           lienId: data.lienId,
           collection: data.collection,
@@ -54,7 +58,7 @@ export function resolveTransaction(transaction: Transaction): LienState {
           payload: {
             hash,
             block,
-            time,
+            time: dateString,
             event_type: "CREATE",
             lienId: data.lienId,
             collection: data.collection,
@@ -64,8 +68,8 @@ export function resolveTransaction(transaction: Transaction): LienState {
             amount: data.loanAmount.toString(),
             rate: data.rate,
             auctionDuration: data.auctionDuration,
-            startTime: 0,
-            auctionStartBlock: block,
+            startTime: time,
+            auctionStartBlock: 0,
           },
           schema: "CREATE"
         }
@@ -75,7 +79,7 @@ export function resolveTransaction(transaction: Transaction): LienState {
           payload: {
             hash,
             block,
-            time,
+            time: dateString,
             event_type: "UPDATE",
             lienId: data.lienId,
             collection: data.collection,
@@ -83,8 +87,8 @@ export function resolveTransaction(transaction: Transaction): LienState {
             amount: data.loanAmount.toString(),
             rate: data.rate,
             auctionDuration: data.auctionDuration,
-            startTime: 0,
-            auctionStartBlock: block,
+            startTime: time,
+            auctionStartBlock: 0,
           },
           schema: "REFINANCE"
         }

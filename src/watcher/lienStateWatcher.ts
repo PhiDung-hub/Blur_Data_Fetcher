@@ -7,7 +7,6 @@ import { BlendEvent, decodeLoanOfferTaken, decodeRefinance, decodeRepay, decodeS
 import { Transaction, resolveTransaction } from "../lib/resolver.js";
 import { getBlockTimestamp } from "../lib/viem_functions.js";
 import { cacheLienState } from "../stores.js";
-import { formatISOString } from "../lib/utils.js";
 
 async function processLogs(logs: Log[]) {
   const decodedLogs = logs.map((log) => {
@@ -80,13 +79,11 @@ async function processLogs(logs: Log[]) {
   const resolvingTransactions: Promise<Transaction>[] = Object.entries(tx_map).map(async ([hash, details]) => {
     const { block, events } = details;
     const time = await getBlockTimestamp(Number(block));
-    const date = new Date(Number(time) * 1000);
-    const dateString = formatISOString(date.toISOString());
 
     return {
       block: Number(block),
       hash: hash as `0x${string}`,
-      time: dateString,
+      time: Number(time),
       events
     }
   })
@@ -102,6 +99,7 @@ async function processLogs(logs: Log[]) {
 }
 
 function main() {
+  // on-chain watcher
   const unwatch = viem_client.watchEvent({
     address: BLEND_CONTRACT,
     // @ts-ignore
@@ -121,6 +119,7 @@ function main() {
       processLogs(logs);
     }, // categorize types
   });
+
   const process2 = setInterval(() => {
     // console.log("Another async task...\n");
   }, 12_000);
