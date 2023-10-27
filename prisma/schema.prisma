@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+////////////////////////////////////////////////////////////
+////////// Aggregated lien state mutation events ///////////
+model LienCreate {
+  id Int @id @default(autoincrement())
+
+  hash       String @unique
+  block      Int
+  time       String // ISO DateTime string
+  event_type String // CREATE | UPDATE | DELETE
+
+  lienId     Int    @unique
+  collection String
+
+  lender            String
+  borrower          String
+  tokenId           Int
+  amount            String // Bigint
+  rate              Int
+  auctionDuration   Int
+  startTime         Int
+  auctionStartBlock Int
+}
+
+model LienRefinance {
+  id Int @id @default(autoincrement())
+
+  hash       String @unique
+  block      Int
+  time       String // ISO DateTime string
+  event_type String // CREATE | UPDATE | DELETE
+
+  lienId     Int
+  collection String
+
+  // updated params
+  lender            String
+  amount            String // Bigint
+  rate              Int
+  auctionDuration   Int
+  startTime         Int
+  auctionStartBlock Int
+}
+
+model LienAuction {
+  id Int @id @default(autoincrement())
+
+  hash       String @unique
+  block      Int
+  time       String // ISO DateTime string
+  event_type String // CREATE | UPDATE | DELETE
+
+  lienId     Int
+  collection String
+
+  // updated params
+  auctionStartBlock Int
+}
+
+model LienDelete {
+  id Int @id @default(autoincrement())
+
+  hash       String @unique
+  block      Int
+  time       String // ISO DateTime string
+  event_type String // CREATE | UPDATE | DELETE
+
+  lienId     Int    @unique
+  collection String
+}
+
+//////// END Aggregated lien state mutation events /////////
+////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////
+////////// On-chain events from Blend contracts ////////////
+model EventStartAuction {
+  id      Int    @id @default(autoincrement())
+  tx_hash String
+  time    String // ISO DateTime string
+
+  collection String
+  lienId     Int    @unique
+}
+
+// Note: EVENT EMITS WHENEVER NEW LOAN ISSUED (LIEN CREATED)
+model EventLoanOfferTaken {
+  id      Int    @id @default(autoincrement())
+  tx_hash String
+  time    String // ISO DateTime string
+
+  collection      String
+  lienId          Int    @unique
+  auctionDuration Int
+  borrower        String
+  lender          String
+  loanAmount      String // Bigint
+  rate            Int // in bps
+  tokenId         Int // the NFT token Id
+}
+
+// Note: THIS EVENT MUTATES A LIEN
+model EventRefinance {
+  id      Int    @id @default(autoincrement())
+  tx_hash String
+  time    String // ISO DateTime string
+
+  collection         String
+  lienId             Int    @unique
+  newAmount          String // Bigint
+  newAuctionDuration Int
+  newLender          String // Address
+  newRate            Int // in bps
+}
+
+// Note: THIS EVENT DELETES A LIEN
+model EventSeize {
+  id      Int    @id @default(autoincrement())
+  tx_hash String
+  time    String // ISO DateTime string
+
+  collection String
+  lienId     Int    @unique
+}
+
+// Note: THIS EVENT DELETES A LIEN
+model EventRepay {
+  id      Int    @id @default(autoincrement())
+  tx_hash String
+  time    String // ISO DateTime string
+
+  collection String
+  lienId     Int    @unique
+}
+
+///////// END On-chain events from Blend contracts /////////
+////////////////////////////////////////////////////////////
