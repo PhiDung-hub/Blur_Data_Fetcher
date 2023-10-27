@@ -13,7 +13,6 @@ const multibar = new MultiBar({
 });
 
 
-
 const DUNE_API_KEY = process.env.DUNE_API_KEY
 
 // Add the API key to an header object

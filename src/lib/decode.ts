@@ -1,5 +1,65 @@
 // Decode raw Blend event data into typescript structs
 import { bytes32ToAddress, bytes32ToNumber, bytes32ToBigint } from "./utils/conversion.js";
+import { BLEND_EVT_LoanOfferTaken_SELECTOR, BLEND_EVT_Refinance_SELECTOR, BLEND_EVT_Repay_SELECTOR, BLEND_EVT_Seize_SELECTOR, BLEND_EVT_StartAuction_SELECTOR } from "./constants.js";
+
+import { Log } from "viem";
+
+export type DecodedLog = ReturnType<typeof decodeLog>;
+export function decodeLog(log: Log) {
+  const evtSelector = log.topics[0];
+  const data = log.data;
+  // pending tx can't emit events -> transaction must be resolved
+  const block = log.blockNumber!;
+  const hash = log.transactionHash!;
+
+  let decodedEvent: BlendEvent | null = null;
+
+  switch (evtSelector) {
+    case BLEND_EVT_LoanOfferTaken_SELECTOR:
+      decodedEvent = {
+        data: decodeLoanOfferTaken(data),
+        type: "LoanOfferTaken"
+      }
+      break;
+
+    case BLEND_EVT_Repay_SELECTOR:
+      decodedEvent = {
+        data: decodeRepay(data),
+        type: "Repay"
+      }
+      break;
+
+    case BLEND_EVT_Seize_SELECTOR:
+      decodedEvent = {
+        data: decodeSeize(data),
+        type: "Seize"
+      }
+      break;
+
+    case BLEND_EVT_StartAuction_SELECTOR:
+      decodedEvent = {
+        data: decodeStartAuction(data),
+        type: "StartAuction"
+      }
+      break;
+
+    case BLEND_EVT_Refinance_SELECTOR:
+      decodedEvent = {
+        data: decodeRefinance(data),
+        type: "Refinance"
+      }
+      break;
+
+    default:
+      throw new Error(`Filter cache invalid event.\nRaw log: ${log}`);
+  }
+
+  return {
+    block,
+    hash,
+    event: decodedEvent!
+  }
+}
 
 export type BlendEvent = {
   data: EventLoanOfferTaken,
@@ -19,6 +79,7 @@ export type BlendEvent = {
 };
 
 // Repay(uint256 lienId, address collection)
+export type EventRepay = ReturnType<typeof decodeRepay>;
 export function decodeRepay(rawData: string) {
   const trimmed0x = rawData.slice(2);
 
@@ -30,9 +91,9 @@ export function decodeRepay(rawData: string) {
     collection: bytes32ToAddress(arg1), // collection
   }
 }
-export type EventRepay = ReturnType<typeof decodeRepay>;
 
 // Seize(uint256 lienId, address collection)
+export type EventSeize = ReturnType<typeof decodeSeize>;
 export function decodeSeize(rawData: string) {
   const trimmed0x = rawData.slice(2);
 
@@ -44,9 +105,9 @@ export function decodeSeize(rawData: string) {
     collection: bytes32ToAddress(arg1), // collection
   }
 }
-export type EventSeize = ReturnType<typeof decodeSeize>;
 
 // StartAuction(uint256 lienId, address collection)
+export type EventStartAuction = ReturnType<typeof decodeStartAuction>;
 export function decodeStartAuction(rawData: string) {
   const trimmed0x = rawData.slice(2);
 
@@ -58,7 +119,6 @@ export function decodeStartAuction(rawData: string) {
     collection: bytes32ToAddress(arg1), // collection
   }
 }
-export type EventStartAuction = ReturnType<typeof decodeStartAuction>;
 
 // event LoanOfferTaken(
 //   bytes32 offerHash, -- arg0
@@ -71,6 +131,7 @@ export type EventStartAuction = ReturnType<typeof decodeStartAuction>;
 //   uint256 tokenId, -- arg7
 //   uint256 auctionDuration -- arg8
 // )
+export type EventLoanOfferTaken = ReturnType<typeof decodeLoanOfferTaken>;
 export function decodeLoanOfferTaken(rawData: string) {
   const trimmed0x = rawData.slice(2);
 
@@ -97,7 +158,6 @@ export function decodeLoanOfferTaken(rawData: string) {
     auctionDuration: bytes32ToNumber(arg8)!,
   }
 }
-export type EventLoanOfferTaken = ReturnType<typeof decodeLoanOfferTaken>;
 
 // event Refinance(
 //   uint256 lienId, -- arg0
@@ -107,6 +167,7 @@ export type EventLoanOfferTaken = ReturnType<typeof decodeLoanOfferTaken>;
 //   uint256 newRate, -- arg4
 //   uint256 newAuctionDuration -- arg5
 // )
+export type EventRefinance = ReturnType<typeof decodeRefinance>;
 export function decodeRefinance(rawData: string) {
   const trimmed0x = rawData.slice(2);
 
@@ -126,5 +187,3 @@ export function decodeRefinance(rawData: string) {
     auctionDuration: bytes32ToNumber(arg5)!,
   }
 }
-export type EventRefinance = ReturnType<typeof decodeRefinance>;
-

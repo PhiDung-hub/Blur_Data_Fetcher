@@ -1,13 +1,43 @@
 // Resolve Blend events emitted from transaction into update logic for the database
 import { LienOp } from "./prisma/stores.js";
-import { BlendEvent } from "./decode.js";
+import { BlendEvent, DecodedLog } from "./decode.js";
 import { formatISOString } from "./utils/conversion.js";
+import { getBlockTimestamp } from "./mainnet_functions.js";
 
 export type Transaction = {
   block: number,
   hash: `0x${string}`,
   time: number,
   events: BlendEvent[]
+}
+
+export function groupLogsIntoTransactions(decodedLogs: DecodedLog[]): Promise<Transaction[]> {
+  let tx_map: { [key: `0x${string}`]: { block: bigint, events: BlendEvent[] } } = {};
+  for (const l of decodedLogs) {
+    const hash = l.hash;
+    if (!tx_map[hash]) {
+      tx_map[hash] = {
+        block: l.block,
+        events: [l.event]
+      }
+    } else {
+      tx_map[hash].events.push(l.event)
+    }
+  }
+
+  const transactionPromises: Promise<Transaction>[] = Object.entries(tx_map).map(async ([hash, details]) => {
+    const { block, events } = details;
+    const time = await getBlockTimestamp(Number(block));
+
+    return {
+      block: Number(block),
+      hash: hash as `0x${string}`,
+      time: Number(time),
+      events
+    }
+  })
+  
+  return Promise.all(transactionPromises)
 }
 
 export function resolveTransaction(transaction: Transaction): LienOp {
