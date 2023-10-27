@@ -1,5 +1,5 @@
 // Decode raw Blend event data into typescript structs
-import { bytes32ToAddress, bytes32ToNumber, bytes32ToBigint } from "./utils.js";
+import { bytes32ToAddress, bytes32ToNumber, bytes32ToBigint } from "./utils/conversion.js";
 
 export type BlendEvent = {
   data: EventLoanOfferTaken,

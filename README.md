@@ -10,7 +10,8 @@ Install pnpm or use npm
 pnpm install 
 ```
 
-## Try running fetcher 
+## tasks 
 
++ run the on-chain watcher:
 ```
-pnpm ts-node-esm src/watcher/lienStateWatcher.ts```
+pnpm ts-node-esm src/scripts/watcher/lienStateWatcher.ts```

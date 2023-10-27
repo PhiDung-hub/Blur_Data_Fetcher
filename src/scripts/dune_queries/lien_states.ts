@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 import dotenv from "dotenv";
 dotenv.config(); // Load environment variables from .env file
 
-import { LienState, cacheLienState } from '../stores.js';
+import { LienOp, cacheLienOp } from '../../lib/prisma/stores.js';
 
 import { MultiBar, Presets } from "cli-progress";
 const multibar = new MultiBar({
@@ -42,7 +42,7 @@ type ResultRow = {
   auctionStartBlock: string | null; // string number
 }
 
-function decode(row: ResultRow): LienState {
+function decode(row: ResultRow): LienOp {
   switch (row.event_type) {
     case 'CREATE': {
       return {
@@ -141,7 +141,7 @@ async function main() {
   });
 
   for (const row of rows) {
-    await cacheLienState(decode(row));
+    await cacheLienOp(decode(row));
     progressBar.increment();
   }
   multibar.stop()

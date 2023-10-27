@@ -34,6 +34,10 @@ async function exportToCSV(schema: string) {
       data = await prisma.lienDelete.findMany();
       outputFilename = "Delete.csv";
       break;
+    case "LienState":
+      data = await prisma.lienState.findMany();
+      outputFilename = "LienState.csv";
+      break;
     default:
       console.info(`Invalid schema name: '${schema}'`);
       return;

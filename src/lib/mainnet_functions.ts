@@ -1,4 +1,4 @@
-import { viem_client } from "../clients/viem.js";
+import { mainnet_client } from "../clients/viem.js";
 import { parseAbi, parseUnits } from "viem";
 
 ///////////// GENERAL FUNCTIONS /////////////
@@ -6,19 +6,19 @@ import { parseAbi, parseUnits } from "viem";
  * Return unix timestamp in SECOND (Javascript Date() constructor requires milliseconds input)
  * */
 export async function getBlockTimestamp(blockNumber: number) {
-  return viem_client
+  return mainnet_client
     .getBlock({ blockNumber: parseUnits(blockNumber.toString(), 0) })
     .then((block) => block.timestamp);
 }
 
 export async function getCurrentBlock() {
-  return viem_client.getBlock().then((block) => block.number);
+  return mainnet_client.getBlock().then((block) => block.number);
 }
 
 
 /////////////// EXAMPLE CALLS ///////////////
 export async function getERC20TokensDecimals(tokenAddresses: `0x${string}`[]) {
-  return viem_client
+  return mainnet_client
     .multicall({
       contracts: tokenAddresses.map((address) => ({
         address,
@@ -60,7 +60,7 @@ export async function getPoolAddress(
   tokenB: string,
   feeTier: number
 ) {
-  return viem_client
+  return mainnet_client
     .readContract({
       ...UniswapV3Factory,
       // @ts-ignore
@@ -74,7 +74,7 @@ export async function getPositionInfo(
   address: `0x${string}`,
   positionId: `0x${string}` // bytes32 id
 ) {
-  return viem_client
+  return mainnet_client
     .readContract({
       address,
       abi: UniswapV3Pool.abi,

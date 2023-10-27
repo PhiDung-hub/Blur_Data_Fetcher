@@ -7,6 +7,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model LienState {
+  id Int @id @default(autoincrement())
+
+  // immutables
+  lienId     Int
+  block      Int
+  time       String // ISO DateTime string
+  collection String
+  borrower   String
+
+  // params
+  lender            String
+  tokenId           Int
+  amount            String // Bigint
+  rate              Int
+  auctionDuration   Int
+  startTime         Int
+  auctionStartBlock Int
+
+  @@unique([lienId, block])
+}
+
 ////////////////////////////////////////////////////////////
 ////////// Aggregated lien state mutation events ///////////
 model LienCreate {

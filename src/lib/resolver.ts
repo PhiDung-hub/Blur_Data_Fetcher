@@ -1,7 +1,7 @@
 // Resolve Blend events emitted from transaction into update logic for the database
-import { LienState } from "../stores.js";
+import { LienOp } from "./prisma/stores.js";
 import { BlendEvent } from "./decode.js";
-import { formatISOString } from "../lib/utils.js";
+import { formatISOString } from "./utils/conversion.js";
 
 export type Transaction = {
   block: number,
@@ -10,7 +10,7 @@ export type Transaction = {
   events: BlendEvent[]
 }
 
-export function resolveTransaction(transaction: Transaction): LienState {
+export function resolveTransaction(transaction: Transaction): LienOp {
   const { events, block, hash, time } = transaction;
 
   const date = new Date(Number(time) * 1000);

@@ -3,7 +3,8 @@ import {
   LienCreate,
   LienRefinance,
   LienAuction,
-  LienDelete
+  LienDelete,
+  LienState,
 } from "@prisma/client";
 
 
@@ -15,13 +16,13 @@ type Delete = Omit<LienDelete, "id">;
 type Auction = Omit<LienAuction, "id">;
 type Refinance = Omit<LienRefinance, "id">;
 
-export type LienState =
+export type LienOp =
   { payload: Create, schema: 'CREATE' } |
   { payload: Delete, schema: 'DELETE' } |
   { payload: Auction, schema: 'AUCTION' } |
   { payload: Refinance, schema: 'REFINANCE' };
 
-export async function cacheLienState({ payload, schema }: LienState) {
+export async function cacheLienOp({ payload, schema }: LienOp) {
   switch (schema) {
     case 'CREATE':
       return prisma.lienCreate.upsert({
@@ -76,6 +77,26 @@ export async function cacheLienState({ payload, schema }: LienState) {
       })
   }
 }
+
+export type State = Omit<LienState, "id">;
+export async function cacheLienState(payload: State) {
+  const { lienId, block } = payload;
+
+  return prisma.lienState.upsert({
+    where: {
+      lienId_block: {
+        lienId,
+        block
+      },
+    },
+    update: {
+      ...payload
+    },
+    create: {
+      ...payload
+    }
+  })
+}
 ///////////////// END CACHE ////////////////
 
 ///////////////// RETRIEVERS ///////////////
@@ -98,6 +119,11 @@ export async function resetEvents() {
   await prisma.eventLoanOfferTaken.deleteMany();
   await prisma.eventRepay.deleteMany();
 }
+// resetLienStates();
 
 ///////////////// END CLEANERS /////////////////
-// resetLienStates();
+
+// async function main() {
+//   await prisma.lienState.deleteMany();
+// }
+// main()

@@ -1,12 +1,12 @@
-import { viem_client } from "../clients/viem.js";
-import { BLEND_CONTRACT, BLEND_EVT_LoanOfferTaken, BLEND_EVT_Refinance, BLEND_EVT_Repay, BLEND_EVT_Seize, BLEND_EVT_StartAuction } from "../lib/constants.js";
-import { BLEND_EVT_LoanOfferTaken_SELECTOR, BLEND_EVT_Refinance_SELECTOR, BLEND_EVT_Repay_SELECTOR, BLEND_EVT_Seize_SELECTOR, BLEND_EVT_StartAuction_SELECTOR } from "../lib/constants.js";
+import { mainnet_client } from "../../clients/viem.js";
+import { BLEND_CONTRACT, BLEND_EVT_LoanOfferTaken, BLEND_EVT_Refinance, BLEND_EVT_Repay, BLEND_EVT_Seize, BLEND_EVT_StartAuction } from "../../lib/constants.js";
+import { BLEND_EVT_LoanOfferTaken_SELECTOR, BLEND_EVT_Refinance_SELECTOR, BLEND_EVT_Repay_SELECTOR, BLEND_EVT_Seize_SELECTOR, BLEND_EVT_StartAuction_SELECTOR } from "../../lib/constants.js";
 import { parseAbi } from "viem";
 import { Log } from "viem";
-import { BlendEvent, decodeLoanOfferTaken, decodeRefinance, decodeRepay, decodeSeize, decodeStartAuction } from "../lib/decode.js";
-import { Transaction, resolveTransaction } from "../lib/resolver.js";
-import { getBlockTimestamp } from "../lib/viem_functions.js";
-import { cacheLienState } from "../stores.js";
+import { BlendEvent, decodeLoanOfferTaken, decodeRefinance, decodeRepay, decodeSeize, decodeStartAuction } from "../../lib/decode.js";
+import { Transaction, resolveTransaction } from "../../lib/resolver.js";
+import { getBlockTimestamp } from "../../lib/mainnet_functions.js";
+import { cacheLienOp } from "../../lib/prisma/stores.js";
 
 async function processLogs(logs: Log[]) {
   const decodedLogs = logs.map((log) => {
@@ -93,14 +93,14 @@ async function processLogs(logs: Log[]) {
   // cache updated state in the database
   for (const tx of transactions) {
     const dbLienState = resolveTransaction(tx);
-    // await cacheLienState(dbLienState);
+    // await cacheLienOp(dbLienState);
     console.log("Cached state", dbLienState);
   }
 }
 
 function main() {
   // on-chain watcher
-  const unwatch = viem_client.watchEvent({
+  const unwatch = mainnet_client.watchEvent({
     address: BLEND_CONTRACT,
     // @ts-ignore
     events: parseAbi([
