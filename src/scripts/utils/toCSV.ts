@@ -11,7 +11,6 @@ export function createFolderIfNotExists(folderPath: string) {
   }
 }
 
-
 const prisma = new PrismaClient();
 
 async function exportToCSV(schema: string) {
@@ -66,7 +65,7 @@ async function exportToCSV(schema: string) {
   }
 }
 
-async function main() {
+export default async function main() {
   const argv = await yargs(hideBin(process.argv))
     .option("schemas", {
       alias: "s",

@@ -1,10 +1,10 @@
 import { createPublicClient, createTestClient, http } from "viem";
-import { mainnet, foundry } from "viem/chains";
+import { mainnet } from "viem/chains";
 
 import dotenv from "dotenv";
 dotenv.config(); // Load environment variables from .env file
 
-console.log("Custom mainnet RPC: ", process.env.MAINNET_RPC);
+// console.log("Custom mainnet RPC: ", process.env.MAINNET_RPC);
 
 export const mainnet_client = createPublicClient({
   chain: mainnet,
@@ -14,7 +14,7 @@ export const mainnet_client = createPublicClient({
 export const test_client = createTestClient({
   chain: mainnet,
   mode: 'anvil',
-  transport: http(process.env.MAINNET_RPC ?? undefined),
+  transport: http(),
 })
 
 // async function main() {

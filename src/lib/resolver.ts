@@ -1,8 +1,10 @@
 // Resolve Blend events emitted from transaction into update logic for the database
-import { LienOp } from "./prisma/stores.js";
+import { LienOp } from "./prisma/store.js";
 import { BlendEvent, DecodedLog } from "./decode.js";
 import { formatISOString } from "./utils/conversion.js";
-import { getBlockTimestamp } from "./mainnet_functions.js";
+import { getBlockTimestamp } from "./mainnet/core.js";
+import { retrieveBlocks } from "./prisma/retrieve.js";
+import { retryWrapper } from "./utils/async.js";
 
 export type Transaction = {
   block: number,
@@ -11,13 +13,13 @@ export type Transaction = {
   events: BlendEvent[]
 }
 
-export function groupLogsIntoTransactions(decodedLogs: DecodedLog[]): Promise<Transaction[]> {
-  let tx_map: { [key: `0x${string}`]: { block: bigint, events: BlendEvent[] } } = {};
+export async function groupLogsIntoTransactions(decodedLogs: DecodedLog[]): Promise<Transaction[]> {
+  let tx_map: { [key: `0x${string}`]: { block: number, events: BlendEvent[] } } = {};
   for (const l of decodedLogs) {
     const hash = l.hash;
-    if (!tx_map[hash]) {
+    if (tx_map[hash] === undefined) {
       tx_map[hash] = {
-        block: l.block,
+        block: Number(l.block),
         events: [l.event]
       }
     } else {
@@ -25,87 +27,114 @@ export function groupLogsIntoTransactions(decodedLogs: DecodedLog[]): Promise<Tr
     }
   }
 
+  const blockNumbers = Object.entries(tx_map).map(([_, { block }]) => block);
+  const cachedBlocks = await retrieveBlocks(blockNumbers);
+  const blockTimeMap = cachedBlocks.reduce((acc, { time, block }) => {
+    acc[block] = time;
+    return acc
+  }, {} as { [key: number]: number });
+
   const transactionPromises: Promise<Transaction>[] = Object.entries(tx_map).map(async ([hash, details]) => {
-    const { block, events } = details;
-    const time = await getBlockTimestamp(Number(block));
+    const { events, block } = details;
+
+    let time = blockTimeMap[block];
+    if (!time) {
+      time = await retryWrapper({
+        fn: async () => {
+          return getBlockTimestamp(block);
+        },
+        fnIdentifier: "`groupLogsIntoTransactions.getBlockTimestamp`"
+      });
+    }
 
     return {
-      block: Number(block),
+      block: block,
       hash: hash as `0x${string}`,
       time: Number(time),
       events
     }
   })
-  
+
   return Promise.all(transactionPromises)
 }
 
-export function resolveTransaction(transaction: Transaction): LienOp {
+/** 
+ * Decode an event from a transaction into corresponding lien op.
+ * A single transaction can have multiple lien ops, e.g. Repay (delete a lien) then take new Loan (create a lien)
+ * */
+export function resolveTransaction(transaction: Transaction): LienOp[] {
   const { events, block, hash, time } = transaction;
 
   const date = new Date(Number(time) * 1000);
   const dateString = formatISOString(date.toISOString());
+  let lienOps: LienOp[] = [];
 
-  const { data, type } = events[0];
-  switch (type) {
-    // DELETE if evt = Repay | Seize
-    case "Repay":
-    case "Seize":
-      return {
-        payload: {
-          hash,
-          block,
-          time: dateString,
-          event_type: "DELETE",
-          lienId: data.lienId,
-          collection: data.collection
-        },
-        schema: "DELETE"
-      }
+  const types = events.map(e => e.type);
 
-    // AUCTION if evt = StartAuction
-    case "StartAuction":
-      return {
-        payload: {
-          hash,
-          block,
-          time: dateString,
-          event_type: "AUCTION",
-          lienId: data.lienId,
-          collection: data.collection,
-          auctionStartBlock: block,
-        },
-        schema: "AUCTION"
-      }
+  const isRefinance = types.includes("Refinance");
 
-    // UDDATE OR CREATE based on event stacks
-    // case "LoanOfferTaken":
-    // case "Refinance":
-    default:
-      if (events.length === 1 && type === "LoanOfferTaken") {
-        // a new lien created
-        return {
+  for (const event of events) {
+    const { data, type } = event;
+    switch (type) {
+      // DELETE if evt = Repay | Seize
+      case "Repay":
+      case "Seize":
+        lienOps.push({
           payload: {
             hash,
             block,
             time: dateString,
-            event_type: "CREATE",
+            event_type: "DELETE",
+            lienId: data.lienId,
+            collection: data.collection
+          },
+          schema: "DELETE"
+        });
+        break;
+
+      // AUCTION if evt = StartAuction
+      case "StartAuction":
+        lienOps.push({
+          payload: {
+            hash,
+            block,
+            time: dateString,
+            event_type: "UPDATE",
             lienId: data.lienId,
             collection: data.collection,
-            lender: data.lender,
-            borrower: data.borrower,
-            tokenId: data.tokenId,
-            amount: data.loanAmount.toString(),
-            rate: data.rate,
-            auctionDuration: data.auctionDuration,
-            startTime: time,
-            auctionStartBlock: 0,
+            auctionStartBlock: block,
           },
-          schema: "CREATE"
+          schema: "AUCTION"
+        });
+        break;
+
+      case "LoanOfferTaken":
+        if (!isRefinance) {
+          lienOps.push({
+            payload: {
+              hash,
+              block,
+              time: dateString,
+              event_type: "CREATE",
+              lienId: data.lienId,
+              collection: data.collection,
+              lender: data.lender,
+              borrower: data.borrower,
+              tokenId: data.tokenId,
+              amount: data.loanAmount.toString(),
+              rate: data.rate,
+              auctionDuration: data.auctionDuration,
+              startTime: time,
+              auctionStartBlock: 0,
+            },
+            schema: "CREATE"
+          })
         }
-      } else {
+        break;
+
+      case "Refinance":
         // a refinance
-        return {
+        lienOps.push({
           payload: {
             hash,
             block,
@@ -121,9 +150,12 @@ export function resolveTransaction(transaction: Transaction): LienOp {
             auctionStartBlock: 0,
           },
           schema: "REFINANCE"
-        }
-      }
+        })
+        break;
+
+    }
+
   }
+
+  return lienOps;
 }
-
-

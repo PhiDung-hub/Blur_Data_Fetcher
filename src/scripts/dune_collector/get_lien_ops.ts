@@ -3,15 +3,15 @@ import fetch from 'node-fetch';
 import dotenv from "dotenv";
 dotenv.config(); // Load environment variables from .env file
 
-import { LienOp, cacheLienOp } from '../../lib/prisma/stores.js';
+import { LienOp, cacheLienOps } from '../../lib/prisma/store.js';
 
 import { MultiBar, Presets } from "cli-progress";
+import { chunkArray } from '../../lib/utils/bisect.js';
 const multibar = new MultiBar({
   format: "{bar} {percentage}% | ETA: {eta}s | {value}/{total}",
   hideCursor: false,
   clearOnComplete: false,
 });
-
 
 const DUNE_API_KEY = process.env.DUNE_API_KEY
 
@@ -41,7 +41,7 @@ type ResultRow = {
   auctionStartBlock: string | null; // string number
 }
 
-function decode(row: ResultRow): LienOp {
+function decodeDuneQuery(row: ResultRow): LienOp {
   switch (row.event_type) {
     case 'CREATE': {
       return {
@@ -72,7 +72,7 @@ function decode(row: ResultRow): LienOp {
             hash: row.hash,
             block: Number(row.block),
             time: row.time,
-            event_type: row.event_type,
+            event_type: 'AUCTION',
             lienId: Number(row.lienId),
             collection: row.collection,
             auctionStartBlock: Number(row.auctionStartBlock!),
@@ -119,7 +119,6 @@ function decode(row: ResultRow): LienOp {
   }
 }
 
-// NOTE: 300K ENTRIES COLLECTED
 async function main() {
   //  Call the Dune API
   const queryId = 3141010;
@@ -135,13 +134,20 @@ async function main() {
   }
   const { rows } = body.result;
 
+  const BATCH_SIZE = 10_000;
+
   const progressBar = multibar.create(rows.length, 0, {
     ...Presets.shades_grey,
   });
 
-  for (const row of rows) {
-    await cacheLienOp(decode(row));
-    progressBar.increment();
+  console.log(`\n\`dune_collector/get_lien_ops.ts\`: Fetching lien operations from Dune query id: ${queryId}...\n\n`);
+
+  const lienOps = (rows as ResultRow[]).map((r) => decodeDuneQuery(r));
+  const opChunks = chunkArray(lienOps, BATCH_SIZE);
+
+  for (const opChunk of opChunks) {
+    await cacheLienOps(opChunk);
+    progressBar.increment(opChunk.length);
   }
   multibar.stop()
 }

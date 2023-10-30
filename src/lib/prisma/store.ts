@@ -5,6 +5,7 @@ import {
   LienAuction,
   LienDelete,
   LienState,
+  EthereumBlock,
 } from "@prisma/client";
 
 
@@ -22,7 +23,8 @@ export type LienOp =
   { payload: Auction, schema: 'AUCTION' } |
   { payload: Refinance, schema: 'REFINANCE' };
 
-export async function cacheLienOp({ payload, schema }: LienOp) {
+/////
+export function cacheLienOp({ payload, schema }: LienOp) {
   switch (schema) {
     case 'CREATE':
       return prisma.lienCreate.upsert({
@@ -78,8 +80,14 @@ export async function cacheLienOp({ payload, schema }: LienOp) {
   }
 }
 
+export function cacheLienOps(payload: LienOp[]) {
+  const upsertOps = payload.map(op => cacheLienOp(op));
+  return prisma.$transaction(upsertOps);
+}
+
+/////
 export type State = Omit<LienState, "id">;
-export async function cacheLienState(payload: State) {
+export function cacheLienState(payload: State) {
   const { lienId, block } = payload;
 
   return prisma.lienState.upsert({
@@ -97,14 +105,35 @@ export async function cacheLienState(payload: State) {
     }
   })
 }
+
+export function cacheLienStates(payload: State[]) {
+  const upsertOps = payload.map(state => cacheLienState(state));
+  return prisma.$transaction(upsertOps);
+}
+
+
+/////
+export function cacheBlock({ block, time }: EthereumBlock) {
+  return prisma.ethereumBlock.upsert({
+    where: {
+      block,
+    },
+    update: {
+      block, time
+    },
+    create: {
+      block, time
+    }
+  })
+}
+
+export function cacheBlocks(payload: EthereumBlock[]) {
+  const upsertOps = payload.map(block => cacheBlock(block));
+  return prisma.$transaction(upsertOps);
+}
 ///////////////// END CACHE ////////////////
 
-///////////////// RETRIEVERS ///////////////
-//
-///////////////// END RETRIEVERS ///////////////
-
 //////////////////// CLEANERS //////////////////
-
 export async function resetLienStates() {
   await prisma.lienCreate.deleteMany();
   await prisma.lienDelete.deleteMany();
