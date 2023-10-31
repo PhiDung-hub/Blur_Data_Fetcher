@@ -119,4 +119,5 @@ export async function updateLiens(newLienOps: CompositeOp[]) {
   }
 
   await cacheLienStates(newLienStates);
+  return newLienStates;
 }

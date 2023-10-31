@@ -32,7 +32,11 @@ export async function getLienOps({ fromBlock = 17_165_950n, toBlock = undefined 
   });
 }
 
-export async function collectLienOps({ fromBlock, toBlock, BATCH_SIZE = 1000 }: { fromBlock: number, toBlock: number, BATCH_SIZE?: number }) {
+export async function* collectLienOps({
+  fromBlock, toBlock, BATCH_SIZE = 1000, out = false
+}: {
+  fromBlock: number, toBlock: number, BATCH_SIZE?: number, out?: boolean
+}) {
   const multibar = createMultiBar();
   const progressBar = createProgressBar(multibar, toBlock - fromBlock + 1);
 
@@ -54,8 +58,11 @@ export async function collectLienOps({ fromBlock, toBlock, BATCH_SIZE = 1000 }: 
     const lienOps = transactions.flatMap(tx => resolveTransaction(tx));
 
     await cacheLienOps(lienOps);
-
     progressBar.increment(trunkEnd - trunkStart + 1);
+
+    if (out) {
+      yield lienOps;
+    }
 
     trunkStart += BATCH_SIZE;
   }
@@ -64,7 +71,11 @@ export async function collectLienOps({ fromBlock, toBlock, BATCH_SIZE = 1000 }: 
 }
 
 
-export async function collectBlocks({ fromBlock, toBlock, BATCH_SIZE = 50 }: { fromBlock: number, toBlock: number, BATCH_SIZE?: number }) {
+export async function* collectBlocks({
+  fromBlock, toBlock, BATCH_SIZE = 50, out = false
+}: {
+  fromBlock: number, toBlock: number, BATCH_SIZE?: number, out?: boolean
+}) {
   const multibar = createMultiBar();
   const progressBar = createProgressBar(multibar, toBlock - fromBlock + 1);
 
@@ -92,14 +103,19 @@ export async function collectBlocks({ fromBlock, toBlock, BATCH_SIZE = 50 }: { f
     });
 
     const blocks = await Promise.all(promises);
+
     await cacheBlocks(blocks);
     progressBar.increment(blockChunk.length);
+
+    if (out) {
+      yield blocks;
+    }
   }
 
   multibar.stop();
 }
 
-export async function constructLienStates({ fromLienId, toLienId = 10_000_000_000, BATCH_SIZE = 10_000 }: { fromLienId: number, toLienId?: number, BATCH_SIZE?: number }) {
+export async function constructLienStates({ fromLienId, toLienId = 10_000_000_000, BATCH_SIZE = 5_000 }: { fromLienId: number, toLienId?: number, BATCH_SIZE?: number }) {
   let lienIds = await retrieveLienIds();
   lienIds = lienIds.filter((lienId) => lienId >= fromLienId && lienId <= toLienId);
   lienIds.sort((a, b) => a - b);

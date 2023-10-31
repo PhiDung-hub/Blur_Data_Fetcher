@@ -28,3 +28,10 @@ export async function retryWrapper(
     }
   }
 }
+
+export async function exhaustGenerator(generator: Generator | AsyncGenerator): Promise<void> {
+  let next = await generator.next();
+  while (!next.done) {
+    next = await generator.next();
+  }
+}

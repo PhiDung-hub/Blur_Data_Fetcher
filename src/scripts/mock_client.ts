@@ -15,9 +15,5 @@ ws.on('close', function close() {
 
 ws.on('message', function message(data: number) {
   // TODO: mock client execution here
-  console.log(`Round-trip time: ${Date.now() - data} ms`);
-
-  setTimeout(function timeout() {
-    ws.send(Date.now());
-  }, 5000);
+  console.log(`Received ${data}`);
 });

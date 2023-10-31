@@ -2,6 +2,7 @@ import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
 import { getCurrentBlock } from "../../lib/mainnet/core.js";
 import { collectBlocks } from "../../lib/mainnet/Blend.js";
+import { exhaustGenerator } from "../../lib/utils/async.js";
 
 
 export default async function main() {
@@ -28,7 +29,7 @@ export default async function main() {
   const toBlock = Math.min(currentBlock, argv.toBlock);
 
   console.log(`\n\`viem_collector/get_lien_ops.ts\`: Fetching lien operations from block ${fromBlock} to ${toBlock}...\n\n`);
-  await collectBlocks({ fromBlock, toBlock });
+  await exhaustGenerator(collectBlocks({ fromBlock, toBlock }));
 }
 
 main()
