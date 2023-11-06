@@ -1,10 +1,15 @@
 import { State, cacheLienStates } from "../prisma/store.js";
 import { CompositeOp, retrieveMostRecentLiensState } from "../prisma/retrieve.js";
 
+import { createMultiBar, createProgressBar } from "../utils/progress.js";
+import { chunkArray } from "../utils/bisect.js";
+import { retrieveLienIds, retrieveLienOpsFromIds } from "../prisma/retrieve.js";
+
 
 export function computeNextState(currentState: State | null, op: CompositeOp): State {
   if (currentState === null) {
     if (op.event_type !== 'CREATE') {
+      console.log("Operation: ", op);
       throw new Error('Invalid lien Data, lien must be CREATE first');
     }
 
@@ -108,16 +113,44 @@ export async function updateLiens(newLienOps: CompositeOp[]) {
 
   const dirtyLienIds = [...new Set(newLienOps.map((op) => op.lienId))];
 
-  let currentStates = await retrieveMostRecentLiensState(dirtyLienIds);
+  let currentStates: { [key: number]: State | null } = await retrieveMostRecentLiensState(dirtyLienIds);
 
-  const newLienStates = [];
+  const newLienStates: State[] = [];
   for (const op of newLienOps) {
     const { lienId } = op;
     const currentState = currentStates[lienId];
+
     const newState = computeNextState(currentState, op);
+    currentStates[lienId] = newState;
     newLienStates.push(newState);
   }
 
   await cacheLienStates(newLienStates);
   return newLienStates;
+}
+
+
+export async function constructLienStates({ fromLienId, toLienId = 10_000_000_000, BATCH_SIZE = 5_000 }: { fromLienId: number, toLienId?: number, BATCH_SIZE?: number }) {
+  let lienIds = await retrieveLienIds();
+  lienIds = lienIds.filter((lienId) => lienId >= fromLienId && lienId <= toLienId);
+  lienIds.sort((a, b) => a - b);
+
+  const multibar = createMultiBar();
+  const progressBar = createProgressBar(multibar, lienIds.length);
+  const idChunks = chunkArray(lienIds, BATCH_SIZE);
+
+  for (const idChunk of idChunks) {
+    const idToLienOpsMap = await retrieveLienOpsFromIds(idChunk);
+    const allStates: State[] = [];
+
+    for (const [_, lienOps] of Object.entries(idToLienOpsMap)) {
+      const states = constructLien(lienOps);
+      allStates.push(...states);
+    }
+
+    await cacheLienStates(allStates);
+    progressBar.increment(Object.keys(idToLienOpsMap).length);
+  }
+
+  multibar.stop();
 }

@@ -2,10 +2,6 @@ export const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, 
 
 /**
  * Retry wrapper for executing a function multiple times in case of an error.
- * 
- * @param {Function} fn - The function to be executed.
- * @param {number} retries - The number of retries.
- * @returns {Promise} - Returns a promise if `fn` is async or the result of `fn` if it's sync.
  */
 export async function retryWrapper(
   { fn, retries = 5, fnIdentifier = "_anon", log = false }: { fn: Function, fnIdentifier?: string, retries?: number, log?: boolean }

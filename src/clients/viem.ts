@@ -1,25 +1,34 @@
-import { createPublicClient, createTestClient, http } from "viem";
+import { createPublicClient, createTestClient, createWalletClient, http, publicActions, walletActions } from "viem";
 import { mainnet } from "viem/chains";
 
 import dotenv from "dotenv";
 dotenv.config(); // Load environment variables from .env file
 
-// console.log("Custom mainnet RPC: ", process.env.MAINNET_RPC);
-
-export const mainnet_client = createPublicClient({
+export const mainnet_read_client = createPublicClient({
   chain: mainnet,
-  transport: http(process.env.MAINNET_RPC ?? undefined),
+  transport: http(process.env.MAINNET_RPC ?? undefined)
 });
+export type MainnetReadClient = typeof mainnet_read_client;
+
+// import { privateKeyToAccount } from "viem/accounts";
+// const account = privateKeyToAccount("0x1231231");
+// export const write_client = createWalletClient({
+//   account,
+//   chain: mainnet,
+//   transport: http(process.env.MAINNET_RPC || undefined)
+// })
+
 
 export const test_client = createTestClient({
+  account: process.env.IMPERSONATE_ADDRESS! as `0x${string}`,
   chain: mainnet,
   mode: 'anvil',
-  transport: http(),
-})
+  transport: http("http://127.0.0.1:8545"),
+}).extend(publicActions).extend(walletActions);
+export type TestClient = typeof test_client;
 
 // async function main() {
-//   await test_client.impersonateAccount({
-//     address: '0xa5cc3c03994DB5b0d9A5eEdD10CabaB0813678AC',
-//   })
+//   const block = await test_client.getBlockNumber();
+//   console.log(block);
 // }
 // main()

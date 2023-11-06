@@ -1,8 +1,9 @@
 import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
 import { getCurrentBlock } from "../../lib/mainnet/core.js";
-import { collectLienOps } from "../../lib/mainnet/Blend.js";
+import { collectLienOps } from "../../lib/mainnet/collect.js";
 import { exhaustGenerator } from "../../lib/utils/async.js";
+import { BLUR_GENESIS_BLOCK } from "../../lib/constants.js";
 
 
 async function main() {
@@ -11,7 +12,7 @@ async function main() {
       alias: "from",
       description: "Starting lien Id to process",
       number: true,
-      default: 17_165_950
+      default: BLUR_GENESIS_BLOCK
     })
     .option("toBlock", {
       alias: "to",

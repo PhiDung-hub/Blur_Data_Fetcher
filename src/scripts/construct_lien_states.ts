@@ -1,6 +1,6 @@
 import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
-import { constructLienStates } from "../lib/mainnet/Blend.js";
+import { constructLienStates } from "../lib/mainnet/aggregate.js";
 
 
 export default async function main() {

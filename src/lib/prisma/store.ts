@@ -35,7 +35,7 @@ export function cacheLienOp({ payload, schema }: LienOp) {
           ...payload
         },
         where: {
-          hash: payload.hash,
+          lienId: payload.lienId,
         }
       })
 
@@ -48,7 +48,7 @@ export function cacheLienOp({ payload, schema }: LienOp) {
           ...payload
         },
         where: {
-          hash: payload.hash,
+          lienId: payload.lienId,
         }
       })
 
@@ -61,7 +61,10 @@ export function cacheLienOp({ payload, schema }: LienOp) {
           ...payload
         },
         where: {
-          hash: payload.hash,
+          lienId_block: {
+            lienId: payload.lienId,
+            block: payload.block,
+          }
         }
       })
 
@@ -74,7 +77,10 @@ export function cacheLienOp({ payload, schema }: LienOp) {
           ...payload
         },
         where: {
-          hash: payload.hash,
+          lienId_block: {
+            lienId: payload.lienId,
+            block: payload.block,
+          }
         }
       })
   }
@@ -134,23 +140,14 @@ export function cacheBlocks(payload: EthereumBlock[]) {
 ///////////////// END CACHE ////////////////
 
 //////////////////// CLEANERS //////////////////
-export async function resetLienStates() {
-  await prisma.lienCreate.deleteMany();
-  await prisma.lienDelete.deleteMany();
-  await prisma.lienAuction.deleteMany();
-  await prisma.lienRefinance.deleteMany();
-}
 
-export async function resetEvents() {
-  await prisma.eventSeize.deleteMany();
-  await prisma.eventRefinance.deleteMany();
-  await prisma.eventStartAuction.deleteMany();
-  await prisma.eventLoanOfferTaken.deleteMany();
-  await prisma.eventRepay.deleteMany();
-}
+// export async function resetLienStates() {
+//   await prisma.lienCreate.deleteMany();
+//   await prisma.lienDelete.deleteMany();
+//   await prisma.lienAuction.deleteMany();
+//   await prisma.lienRefinance.deleteMany();
+// }
 // resetLienStates();
-
-///////////////// END CLEANERS /////////////////
 
 // async function main() {
 //   await prisma.lienState.deleteMany();

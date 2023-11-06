@@ -162,10 +162,91 @@ export function retrieveMostRecentLienState(lienId: number) {
 export async function retrieveMostRecentLiensState(lienIds: number[]) {
   const queries = lienIds.map((lienId) => retrieveMostRecentLienState(lienId));
   const states = await prisma.$transaction(queries);
+
   let statesMap: { [key: number]: LienState | null } = {};
   states.forEach((state, idx) => {
     statesMap[lienIds[idx]] = state;
   });
 
   return statesMap
+}
+
+/** 
+ * Return last state of all liens if it's an auction state.
+ * */
+export async function retrieveActiveAuctions() {
+  const activeAuctions: LienState[] = await prisma.$queryRaw`
+    SELECT l.*
+    FROM "LienState" l
+    INNER JOIN (
+      SELECT lienId, MAX(block) as last_block
+      FROM "LienState"
+      GROUP BY lienId
+    ) la ON l.lienId = la.lienId AND l.block = la.last_block AND l.auctionStartBlock > 0
+  `;
+
+  activeAuctions.sort((s1, s2) => s1.lienId - s2.lienId);
+
+  return activeAuctions
+}
+
+export async function retrieveLienStateById(lienId: number) {
+  const states = await prisma.lienState.findMany({
+    where: {
+      lienId
+    }
+  }).then((states) => states.map(s => {
+    const { id, ...rest } = s;
+    return rest;
+  }));
+  states.sort((s1, s2) => s1.block - s2.block);
+  return states
+}
+
+export async function retrieveLienStateByIds(lienIds: number[]) {
+  const states = await prisma.lienState.findMany({
+    where: {
+      lienId: {
+        in: lienIds
+      }
+    }
+  }).then((states) => states.map(s => {
+    const { id, ...rest } = s;
+    return rest;
+  }));
+  states.sort((s1, s2) => s1.block - s2.block);
+
+  return states
+}
+
+export async function retrieveLienStateByCollection(collection: string) {
+  collection = collection.toLowerCase(); // normalize to lower case
+
+  const states = await prisma.lienState.findMany({
+    where: {
+      collection
+    }
+  }).then((states) => states.map(s => {
+    const { id, ...rest } = s;
+    return rest;
+  }));
+  states.sort((s1, s2) => s1.block - s2.block);
+
+  return states
+}
+
+export async function retrieveLienStateByLender(lender: string) {
+  lender = lender.toLowerCase(); // normalize to lower case
+
+  const states = await prisma.lienState.findMany({
+    where: {
+      lender
+    }
+  }).then((states) => states.map(s => {
+    const { id, ...rest } = s;
+    return rest;
+  }));
+  states.sort((s1, s2) => s1.block - s2.block);
+
+  return states
 }

@@ -21,8 +21,11 @@
     "node": "18.x"
   },
   "devDependencies": {
+    "@prisma/client": "^5.5.2",
+    "@types/body-parser": "^1.19.4",
     "@types/chai": "^4.3.5",
     "@types/cli-progress": "^3.11.0",
+    "@types/express": "^4.17.20",
     "@types/lodash.keyby": "^4.6.7",
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.3.2",
@@ -32,19 +35,22 @@
     "cli-progress": "^3.12.0",
     "fast-csv": "^4.3.6",
     "mocha": "^10.2.0",
+    "prisma": "^5.5.2",
     "rimraf": "^5.0.1",
     "typescript": "^5.1.5",
     "yargs": "^17.7.2"
   },
   "dependencies": {
-    "@prisma/client": "^4.16.2",
+    "@types/qs": "^6.9.9",
+    "body-parser": "^1.20.2",
     "decimal.js": "^10.4.3",
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "graphql": "^16.7.1",
     "graphql-request": "^6.1.0",
     "lodash.keyby": "^4.6.0",
     "node-fetch": "^3.3.2",
-    "prisma": "^4.16.2",
+    "qs": "^6.11.2",
     "ts-node": "^10.9.1",
     "viem": "^1.17.2",
     "ws": "^8.14.2"

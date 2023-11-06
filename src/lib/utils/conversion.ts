@@ -1,3 +1,6 @@
+import { LienStruct } from "../encode.js";
+import { State } from "../prisma/store.js";
+
 export function tokenIdToBytes32(tokenId: number): `0x${string}` {
   const hexValue = parseInt(tokenId.toString()).toString(16).padStart(64, "0");
   return `0x${hexValue}`
@@ -42,3 +45,18 @@ export async function assertWrapper(resolve: Promise<any>, errMsg: string) {
 export function formatISOString(isoString: string) {
   return isoString.replace('T', ' ').replace('Z', ' UTC');
 }
+
+export function extractLien(state: State): LienStruct {
+  return {
+    lender: state.lender as `0x${string}`,
+    borrower: state.borrower as `0x${string}`,
+    collection: state.collection as `0x${string}`,
+    tokenId: BigInt(state.tokenId),
+    amount: BigInt(state.amount),
+    startTime: BigInt(state.startTime),
+    rate: BigInt(state.rate),
+    auctionStartBlock: BigInt(state.auctionStartBlock),
+    auctionDuration: BigInt(state.auctionDuration),
+  }
+}
+

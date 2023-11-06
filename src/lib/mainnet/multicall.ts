@@ -1,9 +1,9 @@
-import { mainnet_client } from "../../clients/viem.js";
+import { mainnet_read_client } from "../../clients/viem.js";
 import { parseAbi } from "viem";
 
 /////////////// EXAMPLE CALLS ///////////////
 export async function getERC20TokensDecimals(tokenAddresses: `0x${string}`[]) {
-  return mainnet_client
+  return mainnet_read_client
     .multicall({
       contracts: tokenAddresses.map((address) => ({
         address,

@@ -11,7 +11,6 @@ export function decodeLog(log: Log) {
   // pending tx can't emit events -> transaction must be resolved
   const block = log.blockNumber!;
   const hash = log.transactionHash!;
-
   let decodedEvent: BlendEvent | null = null;
 
   switch (evtSelector) {

@@ -17,6 +17,7 @@ export async function groupLogsIntoTransactions(decodedLogs: DecodedLog[]): Prom
   let tx_map: { [key: `0x${string}`]: { block: number, events: BlendEvent[] } } = {};
   for (const l of decodedLogs) {
     const hash = l.hash;
+
     if (tx_map[hash] === undefined) {
       tx_map[hash] = {
         block: Number(l.block),
@@ -36,7 +37,6 @@ export async function groupLogsIntoTransactions(decodedLogs: DecodedLog[]): Prom
 
   const transactionPromises: Promise<Transaction>[] = Object.entries(tx_map).map(async ([hash, details]) => {
     const { events, block } = details;
-
     let time = blockTimeMap[block];
     if (!time) {
       time = await retryWrapper({
@@ -75,18 +75,15 @@ export function resolveTransaction(transaction: Transaction): LienOp[] {
 
   for (const event of events) {
     const { data, type } = event;
+    const common = { hash, block, time: dateString, lienId: data.lienId, collection: data.collection };
     switch (type) {
       // DELETE if evt = Repay | Seize
       case "Repay":
       case "Seize":
         lienOps.push({
           payload: {
-            hash,
-            block,
-            time: dateString,
+            ...common,
             event_type: "DELETE",
-            lienId: data.lienId,
-            collection: data.collection
           },
           schema: "DELETE"
         });
@@ -96,12 +93,8 @@ export function resolveTransaction(transaction: Transaction): LienOp[] {
       case "StartAuction":
         lienOps.push({
           payload: {
-            hash,
-            block,
-            time: dateString,
+            ...common,
             event_type: "UPDATE",
-            lienId: data.lienId,
-            collection: data.collection,
             auctionStartBlock: block,
           },
           schema: "AUCTION"
@@ -112,12 +105,8 @@ export function resolveTransaction(transaction: Transaction): LienOp[] {
         if (!isRefinance) {
           lienOps.push({
             payload: {
-              hash,
-              block,
-              time: dateString,
+              ...common,
               event_type: "CREATE",
-              lienId: data.lienId,
-              collection: data.collection,
               lender: data.lender,
               borrower: data.borrower,
               tokenId: data.tokenId,
@@ -136,12 +125,8 @@ export function resolveTransaction(transaction: Transaction): LienOp[] {
         // a refinance
         lienOps.push({
           payload: {
-            hash,
-            block,
-            time: dateString,
+            ...common,
             event_type: "UPDATE",
-            lienId: data.lienId,
-            collection: data.collection,
             lender: data.lender,
             amount: data.loanAmount.toString(),
             rate: data.rate,
@@ -152,9 +137,7 @@ export function resolveTransaction(transaction: Transaction): LienOp[] {
           schema: "REFINANCE"
         })
         break;
-
     }
-
   }
 
   return lienOps;

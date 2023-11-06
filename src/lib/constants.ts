@@ -18,3 +18,5 @@ export const BLEND_EVT_Refinance = "event Refinance(uint256 lienId, address coll
 export const BLEND_EVT_Refinance_SELECTOR = "0x558a9295c62e9e1b12a21c8fe816f4816a2e0269a53157edbfa16017b11b9ac9";
 ////// END Blend Events ///////
 ///////////////////////////////
+//
+export const BLUR_GENESIS_BLOCK = 17_165_950;

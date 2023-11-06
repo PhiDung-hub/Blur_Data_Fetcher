@@ -1,23 +1,29 @@
-import { mainnet_client } from "../../clients/viem.js";
-import { BLEND_CONTRACT, BLEND_EVT_LoanOfferTaken, BLEND_EVT_Refinance, BLEND_EVT_Repay, BLEND_EVT_Seize, BLEND_EVT_StartAuction } from "../../lib/constants.js";
 import { parseAbi } from "viem";
 import { Log } from "viem";
+
+import { mainnet_read_client } from "../../clients/viem.js";
+import {
+  BLEND_CONTRACT, BLEND_EVT_LoanOfferTaken, BLEND_EVT_Refinance,
+  BLEND_EVT_Repay, BLEND_EVT_Seize, BLEND_EVT_StartAuction
+} from "../../lib/constants.js";
 import { decodeLog } from "../../lib/decode.js";
 import { groupLogsIntoTransactions, resolveTransaction } from "../../lib/resolver.js";
-import { collectBlocks, collectLienOps } from "../../lib/mainnet/Blend.js";
+import { collectBlocks, collectLienOps } from "../../lib/mainnet/collect.js";
 import { getCurrentBlock } from "../../lib/mainnet/core.js";
 import { retrieveLastBlock, estimateLastComputedBlock, CompositeOp } from "../../lib/prisma/retrieve.js";
 import { cacheBlock, cacheLienOps } from "../../lib/prisma/store.js";
 import { updateLiens } from "../../lib/mainnet/aggregate.js";
-import { broadcastData, initializeWebSocketServer, isWSSRunning } from "../../service/wss.js";
 import { exhaustGenerator } from "../../lib/utils/async.js";
+
+import { wsBroadcast } from "../../service/wss.js";
+import { initializeServers } from "../../service/bootstrap.js";
 
 // NOTE: Requirements for the script:
 // 1. Check data up-to-date status. (JUST RUN COLLECTOR). If data is not up-to-date, run viem_collector and state builder to upgrade lien states.
 // 2. Initialize the watcher to subscribe to on-chain events
 // 3. Batch dump into the database.
 export default async function main() {
-  initializeWebSocketServer();
+  initializeServers();
   // Task 1
   async function updateLienOpCache() {
     const currentBlock = Number((await getCurrentBlock()).number);
@@ -29,9 +35,8 @@ export default async function main() {
     await exhaustGenerator(collectBlocks({ fromBlock: lastBlockCached! + 1, toBlock: currentBlock }));
 
     console.log("Collecting historical lien operations && Updating lien states\n");
-    const collector = collectLienOps({ fromBlock: estimatedLastLienOpBlock + 1, toBlock: currentBlock });
+    const collector = collectLienOps({ fromBlock: estimatedLastLienOpBlock + 1, toBlock: currentBlock, out: true });
     for await (const newOps of collector) {
-      console.log(newOps);
       const compositeOps = newOps.map(op => {
         const { hash, ...rest } = op.payload;
         return rest;
@@ -39,9 +44,8 @@ export default async function main() {
       // Update lien states to current time
       await updateLiens(compositeOps);
     }
-
-
   }
+
   console.log(`\n\`watcher/lien_State.ts\`- Task 1: updating lien states from to current date`);
   // Run 3 times to decrease the possibility of miscached -> close to 0!
   await updateLienOpCache();
@@ -70,7 +74,7 @@ export default async function main() {
   }
 
   // on-chain watcher
-  const unwatch = mainnet_client.watchEvent({
+  const unwatch = mainnet_read_client.watchEvent({
     address: BLEND_CONTRACT,
     events: parseAbi([
       BLEND_EVT_LoanOfferTaken,
@@ -81,10 +85,8 @@ export default async function main() {
     ]),
     onLogs: async (logs) => {
       const newLienStates = await processLogs(logs);
-      if (isWSSRunning) {
-        broadcastData(newLienStates);
-        console.log("Boardcasted");
-      }
+      wsBroadcast(newLienStates);
+      console.log("Boardcasted to WS clients");
     }
   });
 

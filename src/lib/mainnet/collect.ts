@@ -1,24 +1,21 @@
 import { Log, parseAbi } from "viem";
 
-import { mainnet_client } from "../../clients/viem.js";
+import { mainnet_read_client } from "../../clients/viem.js";
 import {
   BLEND_CONTRACT, BLEND_EVT_LoanOfferTaken, BLEND_EVT_Refinance,
-  BLEND_EVT_Repay, BLEND_EVT_Seize, BLEND_EVT_StartAuction
+  BLEND_EVT_Repay, BLEND_EVT_Seize, BLEND_EVT_StartAuction, BLUR_GENESIS_BLOCK
 } from "../constants.js";
 import { createMultiBar, createProgressBar } from "../utils/progress.js";
 import { decodeLog } from "../decode.js";
 import { groupLogsIntoTransactions, resolveTransaction } from "../resolver.js";
-import { cacheBlocks, cacheLienOp, cacheLienOps } from "../prisma/store.js";
+import { cacheBlocks, cacheLienOps } from "../prisma/store.js";
 import { chunkArray } from "../utils/bisect.js";
 import { getBlockTimestamp } from "../mainnet/core.js";
-import { State as LienState, cacheLienStates } from "../prisma/store.js";
-import { constructLien } from "./aggregate.js";
-import { retrieveLienIds, retrieveLienOpsFromIds } from "../prisma/retrieve.js";
 import { retryWrapper } from "../utils/async.js";
 
 
-export async function getLienOps({ fromBlock = 17_165_950n, toBlock = undefined }: { fromBlock: bigint, toBlock?: bigint }) {
-  return mainnet_client.getLogs({
+export async function getLienOps({ fromBlock = BigInt(BLUR_GENESIS_BLOCK), toBlock = undefined }: { fromBlock: bigint, toBlock?: bigint }) {
+  return mainnet_read_client.getLogs({
     address: BLEND_CONTRACT,
     events: parseAbi([
       BLEND_EVT_LoanOfferTaken,
@@ -42,7 +39,7 @@ export async function* collectLienOps({
 
   let trunkStart = fromBlock;
   const computeTrunkEnd = (trunkStart: number) => {
-    return trunkStart + BATCH_SIZE > toBlock ? toBlock : trunkStart + BATCH_SIZE - 1;
+    return trunkStart + BATCH_SIZE >= toBlock ? toBlock : trunkStart + BATCH_SIZE - 1;
   }
 
   while (trunkStart < toBlock) {
@@ -110,31 +107,6 @@ export async function* collectBlocks({
     if (out) {
       yield blocks;
     }
-  }
-
-  multibar.stop();
-}
-
-export async function constructLienStates({ fromLienId, toLienId = 10_000_000_000, BATCH_SIZE = 5_000 }: { fromLienId: number, toLienId?: number, BATCH_SIZE?: number }) {
-  let lienIds = await retrieveLienIds();
-  lienIds = lienIds.filter((lienId) => lienId >= fromLienId && lienId <= toLienId);
-  lienIds.sort((a, b) => a - b);
-
-  const multibar = createMultiBar();
-  const progressBar = createProgressBar(multibar, lienIds.length);
-  const idChunks = chunkArray(lienIds, BATCH_SIZE);
-
-  for (const idChunk of idChunks) {
-    const idToLienOpsMap = await retrieveLienOpsFromIds(idChunk);
-    const allStates: LienState[] = [];
-
-    for (const [_, lienOps] of Object.entries(idToLienOpsMap)) {
-      const states = constructLien(lienOps);
-      allStates.push(...states);
-    }
-
-    await cacheLienStates(allStates);
-    progressBar.increment(Object.keys(idToLienOpsMap).length);
   }
 
   multibar.stop();
