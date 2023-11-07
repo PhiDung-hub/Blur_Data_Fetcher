@@ -1,5 +1,5 @@
 import { TestClient, test_client } from "../../clients/viem.js";
-import { BLEND_ABI } from "../abi/Blend.js";
+import { BLEND_ABI } from "../../clients/abi/Blend.js";
 import { BLEND_CONTRACT } from "../constants.js";
 import { LienStruct, calculateLienHash } from "../encode.js";
 
