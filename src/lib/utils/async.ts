@@ -20,6 +20,7 @@ export async function retryWrapper(
       }
       if (log) {
         console.warn(`Log - ${fnIdentifier}: Attempt ${i + 1} failed. Retrying...`);
+        await sleep(500 * Math.pow(2, retries));
       }
     }
   }
