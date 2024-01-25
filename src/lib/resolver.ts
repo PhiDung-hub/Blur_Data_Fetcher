@@ -1,5 +1,5 @@
 // Resolve Blend events emitted from transaction into update logic for the database
-import { LienOp } from "./prisma/store.js";
+import { LienOp, cacheBlock } from "./prisma/store.js";
 import { BlendEvent, DecodedLog } from "./decode.js";
 import { formatISOString } from "./utils/conversion.js";
 import { getBlockTimestamp } from "./mainnet/core.js";
@@ -41,7 +41,9 @@ export async function groupLogsIntoTransactions(decodedLogs: DecodedLog[]): Prom
     if (!time) {
       time = await retryWrapper({
         fn: async () => {
-          return getBlockTimestamp(block);
+          const time = await getBlockTimestamp(block);
+          await cacheBlock({block, time: Number(time)});
+          return time;
         },
         fnIdentifier: "`groupLogsIntoTransactions.getBlockTimestamp`"
       });

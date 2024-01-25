@@ -230,6 +230,8 @@ export async function retrieveLienStateByCollection(collection: string) {
     const { id, ...rest } = s;
     return rest;
   }));
+
+
   states.sort((s1, s2) => s1.block - s2.block);
 
   return states

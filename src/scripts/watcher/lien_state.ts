@@ -90,22 +90,22 @@ export default async function main() {
     }
   });
 
-  const fetchBlocks = setInterval(async () => {
-    const currentBlock = await getCurrentBlock();
-    await cacheBlock({
-      block: Number(currentBlock.number),
-      time: Number(currentBlock.timestamp)
-    })
-  }, 12_000);
+  // const fetchBlocks = setInterval(async () => {
+  //   const currentBlock = await getCurrentBlock();
+  //   await cacheBlock({
+  //     block: Number(currentBlock.number),
+  //     time: Number(currentBlock.timestamp)
+  //   })
+  // }, 12_000);
+  //
+  // const unwatch2 = () => {
+  //   clearInterval(fetchBlocks)
+  // }
 
-  const unwatch2 = () => {
-    clearInterval(fetchBlocks)
-  }
-
-  return [unwatch, unwatch2];
+  return [unwatch];
 }
 
-const [unwatch, unwatch2] = await main();
+const [unwatch] = await main();
 
 // setTimeout(() => unwatch2(), 120_000);
 // setTimeout(() => unwatch(), 60_000);

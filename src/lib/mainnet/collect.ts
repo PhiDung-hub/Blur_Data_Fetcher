@@ -48,7 +48,7 @@ export async function* collectLienOps({
       fn: async () => {
         return getLienOps({ fromBlock: BigInt(trunkStart), toBlock: BigInt(trunkEnd) });
       },
-      fnIdentifier: "`collectBlocks.getBlockTimestamp`"
+      fnIdentifier: "`collectLienOps.getLienOps`"
     });
     const decodedLogs = rawLogs.map((log) => decodeLog(log));
     const transactions = await groupLogsIntoTransactions(decodedLogs);

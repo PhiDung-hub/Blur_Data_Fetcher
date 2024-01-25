@@ -4,14 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --recursive",
-    "test:core": "mocha",
-    "test:helpers": "mocha test/helpers",
-    "run:USDC_WETH": "ts-node-esm src/scripts/FLAIR_Range/USDC_WETH.ts",
-    "run:USDC_WETH_bench": "ts-node-esm src/scripts/FLAIR_Range/USDC_WETH_benchmark.ts",
-    "run:LQTY_WETH": "ts-node-esm src/scripts/FLAIR_Range/LQTY_WETH.ts",
-    "run:LQTY_WETH_bench": "ts-node-esm src/scripts/FLAIR_Range/LQTY_WETH_benchmark.ts",
-    "clean:schema": "ts-node-esm src/scripts/clean.ts"
+    "start": "node --loader ts-node/esm src/scripts/watcher/lien_state.ts",
+    "studio": "pnpm prisma studio"
   },
   "keywords": [],
   "author": "",

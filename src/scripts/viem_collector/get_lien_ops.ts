@@ -18,7 +18,7 @@ async function main() {
       alias: "to",
       description: "Final lien Id to process",
       number: true,
-      default: 19_000_000
+      default: 100_000_000
     })
     .help()
     .alias("help", "h")
@@ -29,7 +29,7 @@ async function main() {
   const currentBlock = Number((await getCurrentBlock()).number);
   const toBlock = Math.min(currentBlock, argv.toBlock);
 
-  console.log(`\n\`viem_collector/get_blocks.ts\`: Fetching block information from ${fromBlock} to ${toBlock}...\n\n`);
+  console.log(`\n\`viem_collector/get_lien_ops.ts\`: Fetching block information from ${fromBlock} to ${toBlock}...\n\n`);
   await exhaustGenerator(collectLienOps({ fromBlock, toBlock }));
 }
 
